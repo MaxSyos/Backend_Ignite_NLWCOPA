@@ -1,35 +1,35 @@
-import "express-async-errors";
-import "reflect-metadata";
-import "dotenv";
-import "./shared/container"
-import express, { Router, NextFunction, Request, Response } from "express"
-import { AppError } from "./errors/AppError";
-import { routes } from  "./routes"
+import Fastify from "fastify"
+import cors from "@fastify/cors"
+import jwt from "@fastify/jwt"
 
-const PORT = 4003;
-const HOST = '0.0.0.0';
+import { poolRoutes } from "./routes/pool"
+import { authRoutes } from "./routes/auth"
+import { gameRoutes } from "./routes/game"
+import { guessRoutes } from "./routes/guess"
+import { userRoutes } from "./routes/user"
 
-const app = express();
+async function bootstrap() {
+  const fastify = Fastify({
+    logger: true,
+  })
 
-app.use(express.json());
-app.use(routes);
+  await fastify.register(cors, {
+    origin: true,
+  })
 
-app.use(
-    (err: Error, request: Request, response: Response, next: NextFunction) => {
-      if (err instanceof AppError) {
-        return response.status(err.statusCode).json({
-          status: "error",
-          message: err.message,
-        });
-      }
-  
-      return response.status(500).json({
-        status: "error",
-        message: `Internal server error - ${err.message}`,
-      });
-    }
-  );
+  // Em produção isso precisa ser uma viarável de ambiente
 
+  await fastify.register(jwt, {
+    secret: 'nlwcopa',
+  })
 
+  await fastify.register(poolRoutes)
+  await fastify.register(authRoutes)
+  await fastify.register(gameRoutes)
+  await fastify.register(guessRoutes)
+  await fastify.register(userRoutes)
 
-app.listen(PORT, HOST,  () => console.log("Server is running on PORT 4003"));
+  await fastify.listen({ port: 3333, host: '0.0.0.0' })
+}
+
+bootstrap()
